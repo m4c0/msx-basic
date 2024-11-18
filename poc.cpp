@@ -9,6 +9,8 @@ namespace token {
   enum type {
     nil,
     number,
+    string,
+    keyword,
   };
   struct t {
     type type;
@@ -38,7 +40,7 @@ static token::list tokenise(hai::cstr & src) {
   const char * ptr = src.begin();
   while (auto c = *ptr) {
     auto cs = ptr;
-    if (c == ' ') {
+    if (c == ' ' || c == '\n') {
       ptr++;
       continue;
     }
@@ -47,7 +49,15 @@ static token::list tokenise(hai::cstr & src) {
       res.push_back(token::make(token::number, cs, ptr));
       continue;
     }
+    if (c == '"') {
+      do { ptr++; } while (*ptr && *ptr != '"');
+      if (!*ptr) silog::die("String not properly closed: %s", cs);
+      res.push_back(token::make(token::string, cs + 1, ptr));
+      ptr++;
+      continue;
+    }
     if (match(ptr, "PRINT")) {
+      res.push_back(token::make(token::keyword, cs, ptr));
       continue;
     }
     silog::die("invalid char: [%c]", *ptr);
