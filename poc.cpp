@@ -13,6 +13,7 @@ namespace token {
     keyword,
     identifier,
     op,
+    newline,
   };
   struct t {
     type type;
@@ -51,7 +52,10 @@ static token::list tokenise(hai::cstr & src) {
   while (auto c = *ptr) {
     auto cs = ptr;
     switch (c) {
-      case ' ': case '\n': ptr++; continue;
+      case ' ': ptr++; continue;
+      case '\n':
+        res.push_back(token::make(token::newline, cs, ++ptr));
+        continue;
       case '=':
       case ',':
       case '(': case ')':
