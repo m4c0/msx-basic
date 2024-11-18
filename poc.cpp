@@ -11,6 +11,8 @@ namespace token {
     number,
     string,
     keyword,
+    identifier,
+    op,
   };
   struct t {
     type type;
@@ -35,32 +37,55 @@ static bool match(const char *& ptr, jute::view token) {
   return true;
 }
 
+static constexpr bool is_digit(char c) {
+  return c >= '0' && c <= '9';
+}
+static constexpr bool is_alpha(char c) {
+  c &= ~0x20;
+  return c >= 'A' && c <= 'Z';
+}
+
 static token::list tokenise(hai::cstr & src) {
   token::list res {};
   const char * ptr = src.begin();
   while (auto c = *ptr) {
     auto cs = ptr;
-    if (c == ' ' || c == '\n') {
-      ptr++;
-      continue;
+    switch (c) {
+      case ' ': case '\n': ptr++; continue;
+      case '=':
+      case ',':
+      case '(': case ')':
+      case '+': case '-': case '*': case '/':
+        res.push_back(token::make(token::op, cs, ++ptr));
+        continue;
+      case '"':
+        do { ptr++; } while (*ptr && *ptr != '"');
+        if (!*ptr) silog::die("String not properly closed: %s", cs);
+        res.push_back(token::make(token::string, cs + 1, ptr));
+        ptr++;
+        continue;
+      case '0': case '1': case '2': case '3': case '4':
+      case '5': case '6': case '7': case '8': case '9':
+        while (is_digit(*ptr)) ptr++;
+        res.push_back(token::make(token::number, cs, ptr));
+        continue;
+      default:
+        if (match(ptr, "PRINT")) {
+          res.push_back(token::make(token::keyword, cs, ptr));
+          continue;
+        }
+        if (match(ptr, "SCREEN")) {
+          res.push_back(token::make(token::keyword, cs, ptr));
+          continue;
+        }
+        if (is_alpha(c)) {
+          while (is_alpha(*ptr) || is_digit(*ptr)) ptr++;
+          res.push_back(token::make(token::identifier, cs, ptr));
+          continue;
+        }
+        silog::die("invalid char: [%c]", *ptr);
+        continue;
     }
-    if (c >= '0' && c <= '9') {
-      while (*ptr >= '0' && *ptr <= '9') ptr++;
-      res.push_back(token::make(token::number, cs, ptr));
-      continue;
-    }
-    if (c == '"') {
-      do { ptr++; } while (*ptr && *ptr != '"');
-      if (!*ptr) silog::die("String not properly closed: %s", cs);
-      res.push_back(token::make(token::string, cs + 1, ptr));
-      ptr++;
-      continue;
-    }
-    if (match(ptr, "PRINT")) {
-      res.push_back(token::make(token::keyword, cs, ptr));
-      continue;
-    }
-    silog::die("invalid char: [%c]", *ptr);
   }
   return res;
 }
