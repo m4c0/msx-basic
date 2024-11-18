@@ -74,6 +74,7 @@ static void compile(void *, hai::cstr & src) {
 
 int main(int argc, char ** argv) try {
   jojo::read("example1.bas", nullptr, compile);
+  jojo::read("example2.bas", nullptr, compile);
 } catch (...) {
   return 1;
 }
