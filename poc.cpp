@@ -14,12 +14,27 @@ namespace token {
     identifier,
     op,
     newline,
+    eof,
   };
   struct t {
     type type;
     jute::view content;
   };
-  using list = hai::chain<t>;
+  class stream {
+    hai::chain<t> m_list { 1024 };
+    hai::chain<t>::iterator m_it;
+  public:
+    constexpr void push_back(t t) { m_list.push_back(t); }
+
+    constexpr void reset() { m_it = m_list.begin(); }
+    constexpr auto peek() { return *m_it; }
+    constexpr auto take() {
+      if (m_it == m_list.end()) return t { eof, "" };
+      auto & res = *m_it;
+      ++m_it;
+      return res;
+    }
+  };
 
   static t make(type tp, const char * start, const char * end) {
     unsigned sz = end - start;
@@ -46,8 +61,8 @@ static constexpr bool is_alpha(char c) {
   return c >= 'A' && c <= 'Z';
 }
 
-static token::list tokenise(hai::cstr & src) {
-  token::list res {};
+static token::stream tokenise(hai::cstr & src) {
+  token::stream res {};
   const char * ptr = src.begin();
   while (auto c = *ptr) {
     auto cs = ptr;
@@ -91,14 +106,24 @@ static token::list tokenise(hai::cstr & src) {
         continue;
     }
   }
+  res.reset();
   return res;
 }
 
-static void compile(void *, hai::cstr & src) {
-  auto ts = tokenise(src);
-  for (auto & t : ts) {
-    silog::log(silog::debug, "%d [%.*s]", t.type, (int)t.content.size(), t.content.begin());
+static bool parse_line(token::stream & ts) {
+  auto l_num = ts.take();
+  if (l_num.type == token::eof) return false;
+  if (l_num.type != token::number) silog::die("line starting without a number");
+  while (ts.peek().type != token::newline) {
+    ts.take();
   }
+  silog::trace(l_num.content);
+  return ts.take().type != token::eof;
+}
+
+static void compile(void *, hai::cstr & src) {
+  auto tokens = tokenise(src);
+  while (parse_line(tokens)) {}
 }
 
 int main(int argc, char ** argv) try {
