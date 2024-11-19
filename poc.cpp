@@ -90,11 +90,11 @@ static token::stream tokenise(hai::cstr & src) {
         continue;
       default:
         if (match(ptr, "PRINT")) {
-          res.push_back(token::make(token::keyword, cs, ptr));
+          res.push_back(token::t { token::keyword, "PRINT" });
           continue;
         }
         if (match(ptr, "SCREEN")) {
-          res.push_back(token::make(token::keyword, cs, ptr));
+          res.push_back(token::t { token::keyword, "SCREEN" });
           continue;
         }
         if (is_alpha(c)) {
@@ -110,12 +110,38 @@ static token::stream tokenise(hai::cstr & src) {
   return res;
 }
 
+static void do_print(token::stream & ts) {
+  auto t = ts.peek();
+  if (t.type == token::string) {
+    ts.take();
+  } else if (t.type == token::number) {
+    ts.take();
+  } else if (t.type == token::identifier) {
+    ts.take();
+  } else if (t.type == token::newline) {
+  } else silog::die("can't print token %s", t.content.cstr().begin());
+}
+
+static void do_screen(token::stream & ts) {
+  auto t = ts.take();
+  if (t.type == token::number) {
+  } else silog::die("invalid screen mode %s", t.content.cstr().begin());
+}
+
 static bool parse_line(token::stream & ts) {
   auto l_num = ts.take();
   if (l_num.type == token::eof) return false;
   if (l_num.type != token::number) silog::die("line starting without a number");
   while (ts.peek().type != token::newline) {
-    ts.take();
+    auto t = ts.take();
+    switch (t.type) {
+      case token::keyword:
+        if (t.content == "PRINT") do_print(ts);
+        else if (t.content == "SCREEN") do_screen(ts);
+        else silog::die("unexpected keyword at line %s", l_num.content.cstr().begin());
+        break;
+      default: silog::die("unexpected token type at line %s", l_num.content.cstr().begin());
+    }
   }
   silog::trace(l_num.content);
   return ts.take().type != token::eof;
