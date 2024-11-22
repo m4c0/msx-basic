@@ -128,6 +128,13 @@ static void do_screen(token::stream & ts) {
   } else silog::die("invalid screen mode %s", t.content.cstr().begin());
 }
 
+static void do_assign(token::stream & ts) {
+  auto t = ts.take();
+  if (t.type == token::op && t.content == "=") {
+    silog::die("TBD");
+  } else silog::die("not sure what to do with %s", t.content.cstr().begin());
+}
+
 static bool parse_line(token::stream & ts) {
   auto l_num = ts.take();
   if (l_num.type == token::eof) return false;
@@ -135,6 +142,9 @@ static bool parse_line(token::stream & ts) {
   while (ts.peek().type != token::newline) {
     auto t = ts.take();
     switch (t.type) {
+      case token::identifier:
+        do_assign(ts);
+        break;
       case token::keyword:
         if (t.content == "PRINT") do_print(ts);
         else if (t.content == "SCREEN") do_screen(ts);
