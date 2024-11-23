@@ -61,7 +61,9 @@ static constexpr bool is_alpha(char c) {
   return c >= 'A' && c <= 'Z';
 }
 
-static token::stream tokenise(hai::cstr & src) {
+static token::stream g_ts {};
+
+static void tokenise(hai::cstr & src) {
   token::stream res {};
   const char * ptr = src.begin();
   while (auto c = *ptr) {
@@ -107,59 +109,62 @@ static token::stream tokenise(hai::cstr & src) {
     }
   }
   res.reset();
-  return res;
+  g_ts = traits::move(res);
 }
 
-static void do_print(token::stream & ts) {
-  auto t = ts.peek();
+static void do_print() {
+  auto t = g_ts.peek();
   if (t.type == token::string) {
-    ts.take();
+    g_ts.take();
   } else if (t.type == token::number) {
-    ts.take();
+    g_ts.take();
   } else if (t.type == token::identifier) {
-    ts.take();
+    g_ts.take();
   } else if (t.type == token::newline) {
   } else silog::die("can't print token %s", t.content.cstr().begin());
 }
 
-static void do_screen(token::stream & ts) {
-  auto t = ts.take();
+static void do_screen() {
+  auto t = g_ts.take();
   if (t.type == token::number) {
   } else silog::die("invalid screen mode %s", t.content.cstr().begin());
 }
 
-static void do_assign(token::stream & ts) {
-  auto t = ts.take();
-  if (t.type == token::op && t.content == "=") {
-    silog::die("TBD");
-  } else silog::die("not sure what to do with %s", t.content.cstr().begin());
+static void do_expr() {
+  silog::die("expr TBD");
 }
 
-static bool parse_line(token::stream & ts) {
-  auto l_num = ts.take();
+static void do_assign() {
+  auto t = g_ts.take();
+  if (t.type == token::op && t.content == "=") do_expr();
+  else silog::die("not sure what to do with %s", t.content.cstr().begin());
+}
+
+static bool parse_line() {
+  auto l_num = g_ts.take();
   if (l_num.type == token::eof) return false;
   if (l_num.type != token::number) silog::die("line starting without a number");
-  while (ts.peek().type != token::newline) {
-    auto t = ts.take();
+  while (g_ts.peek().type != token::newline) {
+    auto t = g_ts.take();
     switch (t.type) {
       case token::identifier:
-        do_assign(ts);
+        do_assign();
         break;
       case token::keyword:
-        if (t.content == "PRINT") do_print(ts);
-        else if (t.content == "SCREEN") do_screen(ts);
+        if (t.content == "PRINT") do_print();
+        else if (t.content == "SCREEN") do_screen();
         else silog::die("unexpected keyword at line %s", l_num.content.cstr().begin());
         break;
       default: silog::die("unexpected token type at line %s", l_num.content.cstr().begin());
     }
   }
   silog::trace(l_num.content);
-  return ts.take().type != token::eof;
+  return g_ts.take().type != token::eof;
 }
 
 static void compile(void *, hai::cstr & src) {
-  auto tokens = tokenise(src);
-  while (parse_line(tokens)) {}
+  tokenise(src);
+  while (parse_line()) {}
 }
 
 int main(int argc, char ** argv) try {
