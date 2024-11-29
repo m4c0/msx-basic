@@ -146,14 +146,15 @@ static bool parse_line() {
   fail("expecting end of like after statement, found", eol);
 }
 
-static void compile(void *, hai::cstr & src) {
-  g_ts = tokenise(src);
+static void compile(jute::view fname) {
+  auto src = jojo::read_cstr(fname);
+  g_ts = tokenise(fname, src);
   while (parse_line()) {}
 }
 
 int main(int argc, char ** argv) try {
-  jojo::read("example1.bas", nullptr, compile);
-  jojo::read("example2.bas", nullptr, compile);
+  compile("example1.bas");
+  compile("example2.bas");
 } catch (...) {
   return 1;
 }

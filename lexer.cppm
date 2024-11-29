@@ -20,6 +20,7 @@ export namespace token {
   struct t {
     type type;
     jute::view content;
+    jute::view file;
     int line;
     int column;
   };
@@ -27,7 +28,9 @@ export namespace token {
     return a.type == b.type && a.content == b.content;
   }
   [[noreturn]] void fail(const char * msg, token::t t) {
-    silog::die("file:%d:%d %s", t.line, t.column, msg);
+    silog::die("%.*s:%d:%d %s",
+        static_cast<unsigned>(t.file.size()), t.file.data(),
+        t.line, t.column, msg);
   }
 
   class stream {
@@ -90,15 +93,16 @@ static constexpr bool is_alpha(char c) {
   return c >= 'A' && c <= 'Z';
 }
 
-export auto tokenise(hai::cstr & src) {
+export auto tokenise(jute::view fname, hai::cstr & src) {
   token::stream res {};
   const char * ptr = src.begin();
+  const char * line_ptr = src.begin();
   int line { 1 };
-  int column { 1 };
 
   const auto push = [&](token::t t) {
+    t.file = fname;
     t.line = line;
-    t.column = column;
+    t.column = ptr - line_ptr + 1;
     res.push_back(t);
   };
 
@@ -113,7 +117,7 @@ export auto tokenise(hai::cstr & src) {
       case '\n':
         push(make(token::newline, cs, ++ptr));
         line++;
-        column = 1;
+        line_ptr = ptr;
         continue;
       case '+': case '-': case '*': case '/':
         push(make(token::oper, cs, ++ptr));
