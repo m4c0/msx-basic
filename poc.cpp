@@ -156,11 +156,17 @@ static void do_screen() {
   } else fail("invalid screen mode", t);
 }
 
+static void do_call() {
+  g_ts.match(token::op::LPAREN, "expecting '(', got");
+  g_ts.match(token::op::RPAREN, "expecting ')', got");
+}
+
 static void do_expr() {
   auto lhs = g_ts.take();
   if (lhs.type == token::number) {
   } else if (lhs.type == token::identifier) {
   } else if (lhs == token::kw::INT) {
+    return do_call();
   } else fail("invalid token in LHS of expression", lhs);
 
   auto op = g_ts.peek();
