@@ -52,9 +52,7 @@ static void do_expr() {
 }
 
 static void do_assign() {
-  auto t = g_ts.take();
-  if (t.type == token::oper && t.content == "=") do_expr();
-  else silog::die("not sure what to do with %s", t.content.cstr().begin());
+  g_ts.match(token::sym::EQ, "expecting '=' after identifier, got");
 }
 
 static bool parse_line() {

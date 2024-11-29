@@ -10,6 +10,7 @@ export namespace token {
     string,
     keyword,
     identifier,
+    symbol,
     oper,
     parenthesis,
     newline,
@@ -54,6 +55,9 @@ export namespace token::kw {
   constexpr t RND    { .type = keyword, .content = "RND" };
   constexpr t SCREEN { .type = keyword, .content = "SCREEN" };
 }
+export namespace token::sym {
+  constexpr t EQ { .type = symbol, .content = "EQ" };
+}
 export namespace token::paren {
   constexpr t L { .type = parenthesis, .content = "(" };
   constexpr t R { .type = parenthesis, .content = ")" };
@@ -92,10 +96,10 @@ export auto tokenise(hai::cstr & src) {
       case ' ': ptr++; continue;
       case '(': res.push_back(token::paren::R); ptr++; continue;
       case ')': res.push_back(token::paren::L); ptr++; continue;
+      case '=': res.push_back(token::sym::EQ); ptr++; continue;
       case '\n':
         res.push_back(make(token::newline, cs, ++ptr));
         continue;
-      case '=':
       case ',':
       case '+': case '-': case '*': case '/':
         res.push_back(make(token::oper, cs, ++ptr));
