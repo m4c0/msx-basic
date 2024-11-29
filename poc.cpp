@@ -93,9 +93,9 @@ static ast::node * do_screen() {
 }
 
 static ast::node * do_call() {
-  g_ts.match(token::paren::L, "expecting '(', got");
+  g_ts.match(token::paren::L, "expecting '('");
   auto n = do_expr();
-  g_ts.match(token::paren::R, "expecting ')', got");
+  g_ts.match(token::paren::R, "expecting ')'");
   return n;
 }
 
@@ -119,7 +119,7 @@ static ast::node * do_expr() {
 }
 
 static ast::node * do_assign(jute::view var) {
-  g_ts.match(token::sym::EQ, "expecting '=' after identifier, got");
+  g_ts.match(token::sym::EQ, "expecting '=' after identifier");
   return new ast::assign { var, do_expr() };
 }
 
@@ -143,7 +143,7 @@ static bool parse_line() {
   auto eol = g_ts.take();
   if (eol.type == token::newline) return true;
   if (eol.type == token::eof) return false;
-  fail("expecting end of like after statement, found", eol);
+  fail("expecting end of line after statement", eol);
 }
 
 static void compile(jute::view fname) {
