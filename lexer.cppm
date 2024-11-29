@@ -110,8 +110,8 @@ export auto tokenise(jute::view fname, hai::cstr & src) {
     auto cs = ptr;
     switch (c) {
       case ' ': ptr++; continue;
-      case '(': push(token::paren::R); ptr++; continue;
-      case ')': push(token::paren::L); ptr++; continue;
+      case '(': push(token::paren::L); ptr++; continue;
+      case ')': push(token::paren::R); ptr++; continue;
       case '=': push(token::sym::EQ); ptr++; continue;
       case ',': push(token::sym::COMMA); ptr++; continue;
       case '\n':
@@ -140,6 +140,10 @@ export auto tokenise(jute::view fname, hai::cstr & src) {
         }
         if (match(ptr, "PRINT")) {
           push(token::kw::PRINT);
+          continue;
+        }
+        if (match(ptr, "RND")) {
+          push(token::kw::RND);
           continue;
         }
         if (match(ptr, "SCREEN")) {
