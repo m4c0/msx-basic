@@ -13,6 +13,7 @@ namespace token {
     keyword,
     identifier,
     oper,
+    parenthesis,
     newline,
     eof,
   };
@@ -60,9 +61,9 @@ namespace token::kw {
   static constexpr t RND    { .type = keyword, .content = "RND" };
   static constexpr t SCREEN { .type = keyword, .content = "SCREEN" };
 }
-namespace token::op {
-  static constexpr t LPAREN { .type = oper, .content = "(" };
-  static constexpr t RPAREN { .type = oper, .content = ")" };
+namespace token::paren {
+  static constexpr t L { .type = parenthesis, .content = "(" };
+  static constexpr t R { .type = parenthesis, .content = ")" };
 }
 
 static bool match(const char *& ptr, jute::view token) {
@@ -93,12 +94,13 @@ static void tokenise(hai::cstr & src) {
     auto cs = ptr;
     switch (c) {
       case ' ': ptr++; continue;
+      case '(': res.push_back(token::paren::R); ptr++; continue;
+      case ')': res.push_back(token::paren::L); ptr++; continue;
       case '\n':
         res.push_back(token::make(token::newline, cs, ++ptr));
         continue;
       case '=':
       case ',':
-      case '(': case ')':
       case '+': case '-': case '*': case '/':
         res.push_back(token::make(token::oper, cs, ++ptr));
         continue;
@@ -160,9 +162,9 @@ static void do_screen() {
 static void do_expr();
 
 static void do_call() {
-  g_ts.match(token::op::LPAREN, "expecting '(', got");
+  g_ts.match(token::paren::L, "expecting '(', got");
   do_expr();
-  g_ts.match(token::op::RPAREN, "expecting ')', got");
+  g_ts.match(token::paren::R, "expecting ')', got");
 }
 
 static void do_expr() {
@@ -174,10 +176,7 @@ static void do_expr() {
   } else fail("invalid token in LHS of expression", lhs);
 
   auto op = g_ts.peek();
-  if (op.type == token::oper) {
-  } else if (op.type == token::eof || op.type == token::newline) {
-    return;
-  } else fail("invalid token in OP of expression", op);
+  if (op.type != token::oper) return;
 
   auto rhs = g_ts.take();
   if (rhs.type == token::number) {
