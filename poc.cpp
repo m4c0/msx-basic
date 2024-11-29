@@ -57,6 +57,7 @@ namespace token {
 namespace token::kw {
   static constexpr t INT    { .type = keyword, .content = "INT" };
   static constexpr t PRINT  { .type = keyword, .content = "PRINT" };
+  static constexpr t RND    { .type = keyword, .content = "RND" };
   static constexpr t SCREEN { .type = keyword, .content = "SCREEN" };
 }
 namespace token::op {
@@ -156,17 +157,20 @@ static void do_screen() {
   } else fail("invalid screen mode", t);
 }
 
+static void do_expr();
+
 static void do_call() {
   g_ts.match(token::op::LPAREN, "expecting '(', got");
+  do_expr();
   g_ts.match(token::op::RPAREN, "expecting ')', got");
 }
 
 static void do_expr() {
   auto lhs = g_ts.take();
+  if (lhs == token::kw::INT) return do_call();
+  if (lhs == token::kw::RND) return do_call();
   if (lhs.type == token::number) {
   } else if (lhs.type == token::identifier) {
-  } else if (lhs == token::kw::INT) {
-    return do_call();
   } else fail("invalid token in LHS of expression", lhs);
 
   auto op = g_ts.peek();
