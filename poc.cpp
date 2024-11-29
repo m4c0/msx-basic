@@ -12,14 +12,22 @@ namespace token {
     string,
     keyword,
     identifier,
-    op,
+    oper,
     newline,
     eof,
   };
+
   struct t {
     type type;
     jute::view content;
   };
+  static constexpr bool operator==(const token::t & a, const token::t & b) {
+    return a.type == b.type && a.content == b.content;
+  }
+  [[noreturn]] static void fail(const char * msg, token::t t) {
+    silog::die("%s: %s", msg, t.content.cstr().begin());
+  }
+
   class stream {
     hai::chain<t> m_list { 1024 };
     hai::chain<t>::iterator m_it;
@@ -34,11 +42,12 @@ namespace token {
       ++m_it;
       return res;
     }
-  };
 
-  static constexpr bool operator==(const token::t & a, const token::t & b) {
-    return a.type == b.type && a.content == b.content;
-  }
+    constexpr void match(const t & exp, const char * err) {
+      auto tt = take();
+      if (tt != exp) fail(err, tt);
+    }
+  };
 
   static t make(type tp, const char * start, const char * end) {
     unsigned sz = end - start;
@@ -49,6 +58,10 @@ namespace token::kw {
   static constexpr t INT    { .type = keyword, .content = "INT" };
   static constexpr t PRINT  { .type = keyword, .content = "PRINT" };
   static constexpr t SCREEN { .type = keyword, .content = "SCREEN" };
+}
+namespace token::op {
+  static constexpr t LPAREN { .type = oper, .content = "(" };
+  static constexpr t RPAREN { .type = oper, .content = ")" };
 }
 
 static bool match(const char *& ptr, jute::view token) {
@@ -72,10 +85,6 @@ static constexpr bool is_alpha(char c) {
 
 static token::stream g_ts {};
 
-[[noreturn]] static void fail(const char * msg, token::t t) {
-  silog::die("%s: %s", msg, t.content.cstr().begin());
-}
-
 static void tokenise(hai::cstr & src) {
   token::stream res {};
   const char * ptr = src.begin();
@@ -90,7 +99,7 @@ static void tokenise(hai::cstr & src) {
       case ',':
       case '(': case ')':
       case '+': case '-': case '*': case '/':
-        res.push_back(token::make(token::op, cs, ++ptr));
+        res.push_back(token::make(token::oper, cs, ++ptr));
         continue;
       case '"':
         do { ptr++; } while (*ptr && *ptr != '"');
@@ -155,7 +164,7 @@ static void do_expr() {
   } else fail("invalid token in LHS of expression", lhs);
 
   auto op = g_ts.peek();
-  if (op.type == token::op) {
+  if (op.type == token::oper) {
   } else if (op.type == token::eof || op.type == token::newline) {
     return;
   } else fail("invalid token in OP of expression", op);
@@ -168,7 +177,7 @@ static void do_expr() {
 
 static void do_assign() {
   auto t = g_ts.take();
-  if (t.type == token::op && t.content == "=") do_expr();
+  if (t.type == token::oper && t.content == "=") do_expr();
   else silog::die("not sure what to do with %s", t.content.cstr().begin());
 }
 
