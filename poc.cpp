@@ -123,19 +123,27 @@ static ast::node * do_assign(jute::view var) {
   return new ast::assign { var, do_expr() };
 }
 
+static ast::node * do_stmt() {
+  auto t = g_ts.take();
+  if (t.type == token::identifier) return do_assign(t.content);
+  else if (t == token::kw::PRINT)  return do_print();
+  else if (t == token::kw::SCREEN) return do_screen();
+  else fail("unexpected token type", t);
+}
+
 static bool parse_line() {
   auto l_num = g_ts.take();
   if (l_num.type == token::eof) return false;
-  if (l_num.type != token::number) silog::die("line starting without a number");
+  if (l_num.type != token::number) fail("line starting without a number", l_num);
 
-  auto t = g_ts.take();
-  if (t.type == token::identifier) do_assign(t.content);
-  else if (t == token::kw::PRINT) do_print();
-  else if (t == token::kw::SCREEN) do_screen();
-  else fail("unexpected token type at line", l_num);
+  do_stmt();
 
   silog::trace(l_num.content);
-  return g_ts.take().type != token::eof;
+
+  auto eol = g_ts.take();
+  if (eol.type == token::newline) return true;
+  if (eol.type == token::eof) return false;
+  fail("expecting end of like after statement, found", eol);
 }
 
 static void compile(void *, hai::cstr & src) {
