@@ -63,6 +63,10 @@ static constexpr bool is_alpha(char c) {
 
 static token::stream g_ts {};
 
+[[noreturn]] static void fail(const char * msg, token::t t) {
+  silog::die("%s: %s", msg, t.content.cstr().begin());
+}
+
 static void tokenise(hai::cstr & src) {
   token::stream res {};
   const char * ptr = src.begin();
@@ -121,31 +125,31 @@ static void do_print() {
   } else if (t.type == token::identifier) {
     g_ts.take();
   } else if (t.type == token::newline) {
-  } else silog::die("can't print token %s", t.content.cstr().begin());
+  } else fail("can't print token", t);
 }
 
 static void do_screen() {
   auto t = g_ts.take();
   if (t.type == token::number) {
-  } else silog::die("invalid screen mode %s", t.content.cstr().begin());
+  } else fail("invalid screen mode", t);
 }
 
 static void do_expr() {
   auto lhs = g_ts.take();
   if (lhs.type == token::number) {
   } else if (lhs.type == token::identifier) {
-  } else silog::die("invalid token in expression: %s", lhs.content.cstr().begin());
+  } else fail("invalid token in LHS of expression", lhs);
 
   auto op = g_ts.peek();
   if (op.type == token::op) {
   } else if (op.type == token::eof || op.type == token::newline) {
     return;
-  } else silog::die("invalid token in expression: %s", op.content.cstr().begin());
+  } else fail("invalid token in OP of expression", op);
 
   auto rhs = g_ts.take();
   if (rhs.type == token::number) {
   } else if (rhs.type == token::identifier) {
-  } else silog::die("invalid token in expression: %s", rhs.content.cstr().begin());
+  } else fail("invalid token in RHS of expression", rhs);
 }
 
 static void do_assign() {
