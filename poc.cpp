@@ -131,7 +131,21 @@ static void do_screen() {
 }
 
 static void do_expr() {
-  silog::die("expr TBD");
+  auto lhs = g_ts.take();
+  if (lhs.type == token::number) {
+  } else if (lhs.type == token::identifier) {
+  } else silog::die("invalid token in expression: %s", lhs.content.cstr().begin());
+
+  auto op = g_ts.peek();
+  if (op.type == token::op) {
+  } else if (op.type == token::eof || op.type == token::newline) {
+    return;
+  } else silog::die("invalid token in expression: %s", op.content.cstr().begin());
+
+  auto rhs = g_ts.take();
+  if (rhs.type == token::number) {
+  } else if (rhs.type == token::identifier) {
+  } else silog::die("invalid token in expression: %s", rhs.content.cstr().begin());
 }
 
 static void do_assign() {
