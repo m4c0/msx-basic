@@ -36,10 +36,19 @@ namespace token {
     }
   };
 
+  static constexpr bool operator==(const token::t & a, const token::t & b) {
+    return a.type == b.type && a.content == b.content;
+  }
+
   static t make(type tp, const char * start, const char * end) {
     unsigned sz = end - start;
     return { .type = tp, .content = { start, sz } };
   }
+}
+namespace token::kw {
+  static constexpr t INT    { .type = keyword, .content = "INT" };
+  static constexpr t PRINT  { .type = keyword, .content = "PRINT" };
+  static constexpr t SCREEN { .type = keyword, .content = "SCREEN" };
 }
 
 static bool match(const char *& ptr, jute::view token) {
@@ -95,12 +104,16 @@ static void tokenise(hai::cstr & src) {
         res.push_back(token::make(token::number, cs, ptr));
         continue;
       default:
+        if (match(ptr, "INT")) {
+          res.push_back(token::kw::INT);
+          continue;
+        }
         if (match(ptr, "PRINT")) {
-          res.push_back(token::t { token::keyword, "PRINT" });
+          res.push_back(token::kw::PRINT);
           continue;
         }
         if (match(ptr, "SCREEN")) {
-          res.push_back(token::t { token::keyword, "SCREEN" });
+          res.push_back(token::kw::SCREEN);
           continue;
         }
         if (is_alpha(c)) {
@@ -138,6 +151,7 @@ static void do_expr() {
   auto lhs = g_ts.take();
   if (lhs.type == token::number) {
   } else if (lhs.type == token::identifier) {
+  } else if (lhs == token::kw::INT) {
   } else fail("invalid token in LHS of expression", lhs);
 
   auto op = g_ts.peek();
@@ -164,17 +178,10 @@ static bool parse_line() {
   if (l_num.type != token::number) silog::die("line starting without a number");
   while (g_ts.peek().type != token::newline) {
     auto t = g_ts.take();
-    switch (t.type) {
-      case token::identifier:
-        do_assign();
-        break;
-      case token::keyword:
-        if (t.content == "PRINT") do_print();
-        else if (t.content == "SCREEN") do_screen();
-        else silog::die("unexpected keyword at line %s", l_num.content.cstr().begin());
-        break;
-      default: silog::die("unexpected token type at line %s", l_num.content.cstr().begin());
-    }
+    if (t.type == token::identifier) do_assign();
+    else if (t == token::kw::PRINT) do_print();
+    else if (t == token::kw::SCREEN) do_screen();
+    else fail("unexpected token type at line", l_num);
   }
   silog::trace(l_num.content);
   return g_ts.take().type != token::eof;
