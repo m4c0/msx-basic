@@ -20,12 +20,14 @@ export namespace token {
   struct t {
     type type;
     jute::view content;
+    int line;
+    int column;
   };
   constexpr bool operator==(const token::t & a, const token::t & b) {
     return a.type == b.type && a.content == b.content;
   }
   [[noreturn]] void fail(const char * msg, token::t t) {
-    silog::die("%s: %s", msg, t.content.cstr().begin());
+    silog::die("file:%d:%d %s", t.line, t.column, msg);
   }
 
   class stream {
@@ -91,47 +93,58 @@ static constexpr bool is_alpha(char c) {
 export auto tokenise(hai::cstr & src) {
   token::stream res {};
   const char * ptr = src.begin();
+  int line { 1 };
+  int column { 1 };
+
+  const auto push = [&](token::t t) {
+    t.line = line;
+    t.column = column;
+    res.push_back(t);
+  };
+
   while (auto c = *ptr) {
     auto cs = ptr;
     switch (c) {
       case ' ': ptr++; continue;
-      case '(': res.push_back(token::paren::R); ptr++; continue;
-      case ')': res.push_back(token::paren::L); ptr++; continue;
-      case '=': res.push_back(token::sym::EQ); ptr++; continue;
-      case ',': res.push_back(token::sym::COMMA); ptr++; continue;
+      case '(': push(token::paren::R); ptr++; continue;
+      case ')': push(token::paren::L); ptr++; continue;
+      case '=': push(token::sym::EQ); ptr++; continue;
+      case ',': push(token::sym::COMMA); ptr++; continue;
       case '\n':
-        res.push_back(make(token::newline, cs, ++ptr));
+        push(make(token::newline, cs, ++ptr));
+        line++;
+        column = 1;
         continue;
       case '+': case '-': case '*': case '/':
-        res.push_back(make(token::oper, cs, ++ptr));
+        push(make(token::oper, cs, ++ptr));
         continue;
       case '"':
         do { ptr++; } while (*ptr && *ptr != '"');
         if (!*ptr) silog::die("String not properly closed: %s", cs);
-        res.push_back(make(token::string, cs + 1, ptr));
+        push(make(token::string, cs + 1, ptr));
         ptr++;
         continue;
       case '0': case '1': case '2': case '3': case '4':
       case '5': case '6': case '7': case '8': case '9':
         while (is_digit(*ptr)) ptr++;
-        res.push_back(make(token::number, cs, ptr));
+        push(make(token::number, cs, ptr));
         continue;
       default:
         if (match(ptr, "INT")) {
-          res.push_back(token::kw::INT);
+          push(token::kw::INT);
           continue;
         }
         if (match(ptr, "PRINT")) {
-          res.push_back(token::kw::PRINT);
+          push(token::kw::PRINT);
           continue;
         }
         if (match(ptr, "SCREEN")) {
-          res.push_back(token::kw::SCREEN);
+          push(token::kw::SCREEN);
           continue;
         }
         if (is_alpha(c)) {
           while (is_alpha(*ptr) || is_digit(*ptr)) ptr++;
-          res.push_back(make(token::identifier, cs, ptr));
+          push(make(token::identifier, cs, ptr));
           continue;
         }
         silog::die("invalid char: [%c]", *ptr);
