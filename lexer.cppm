@@ -95,7 +95,7 @@ static constexpr bool is_alpha(char c) {
   return c >= 'A' && c <= 'Z';
 }
 
-export auto tokenise(jute::view fname, hai::cstr & src) {
+export auto tokenise(jute::view fname, const hai::cstr & src) {
   token::stream res {};
   const char * ptr = src.begin();
   const char * line_ptr = src.begin();
