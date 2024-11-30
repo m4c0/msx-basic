@@ -23,6 +23,11 @@ namespace ast {
   public:
     explicit constexpr bin_expr_node(node * a, node * b) : m_a { a }, m_b { b } {}
   };
+  class num_node : public node {
+    int m_n;
+  public:
+    explicit constexpr num_node(int n) : m_n { n } {}
+  };
   class view_node : public node {
     jute::view m_n {};
   public:
@@ -67,10 +72,11 @@ namespace ast {
     using view_node::view_node;
   };
 
-  class screen : public node {
-    int m_mode;
-  public:
-    explicit constexpr screen(int n) : m_mode { n } {}
+  struct go_to : num_node {
+    using num_node::num_node;
+  };
+  struct screen : num_node {
+    using num_node::num_node;
   };
 }
 
@@ -102,6 +108,12 @@ static ast::node * do_pset() {
   auto b = do_expr();
   g_ts.match(token::paren::R, "expecting ')'");
   return new ast::pset { a, b };;
+}
+
+static ast::node * do_goto() {
+  auto t = g_ts.take();
+  if (t.type != token::number) fail("unsupported token for goto", t);
+  return new ast::go_to { atoi(t) };
 }
 
 static ast::node * do_screen() {
@@ -144,6 +156,7 @@ static ast::node * do_assign(jute::view var) {
 static ast::node * do_stmt() {
   auto t = g_ts.take();
   if (t.type == token::identifier) return do_assign(t.content);
+  else if (t == token::kw::GOTO)   return do_goto();
   else if (t == token::kw::PRINT)  return do_print();
   else if (t == token::kw::PSET)   return do_pset();
   else if (t == token::kw::SCREEN) return do_screen();

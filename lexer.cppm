@@ -55,6 +55,7 @@ export namespace token {
   };
 }
 export namespace token::kw {
+  constexpr t GOTO   { .type = keyword, .content = "GOTO" };
   constexpr t INT    { .type = keyword, .content = "INT" };
   constexpr t PRINT  { .type = keyword, .content = "PRINT" };
   constexpr t PSET   { .type = keyword, .content = "PSET" };
@@ -135,26 +136,12 @@ export auto tokenise(jute::view fname, hai::cstr & src) {
         push(make(token::number, cs, ptr));
         continue;
       default:
-        if (match(ptr, "INT")) {
-          push(token::kw::INT);
-          continue;
-        }
-        if (match(ptr, "PRINT")) {
-          push(token::kw::PRINT);
-          continue;
-        }
-        if (match(ptr, "PSET")) {
-          push(token::kw::PSET);
-          continue;
-        }
-        if (match(ptr, "RND")) {
-          push(token::kw::RND);
-          continue;
-        }
-        if (match(ptr, "SCREEN")) {
-          push(token::kw::SCREEN);
-          continue;
-        }
+        if (match(ptr, "GOTO"))   { push(token::kw::GOTO);   continue; }
+        if (match(ptr, "INT"))    { push(token::kw::INT);    continue; }
+        if (match(ptr, "PRINT"))  { push(token::kw::PRINT);  continue; }
+        if (match(ptr, "PSET"))   { push(token::kw::PSET);   continue; }
+        if (match(ptr, "RND"))    { push(token::kw::RND);    continue; }
+        if (match(ptr, "SCREEN")) { push(token::kw::SCREEN); continue; }
         if (is_alpha(c)) {
           while (is_alpha(*ptr) || is_digit(*ptr)) ptr++;
           push(make(token::identifier, cs, ptr));
