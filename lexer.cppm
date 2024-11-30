@@ -57,6 +57,7 @@ export namespace token {
 export namespace token::kw {
   constexpr t INT    { .type = keyword, .content = "INT" };
   constexpr t PRINT  { .type = keyword, .content = "PRINT" };
+  constexpr t PSET   { .type = keyword, .content = "PSET" };
   constexpr t RND    { .type = keyword, .content = "RND" };
   constexpr t SCREEN { .type = keyword, .content = "SCREEN" };
 }
@@ -140,6 +141,10 @@ export auto tokenise(jute::view fname, hai::cstr & src) {
         }
         if (match(ptr, "PRINT")) {
           push(token::kw::PRINT);
+          continue;
+        }
+        if (match(ptr, "PSET")) {
+          push(token::kw::PSET);
           continue;
         }
         if (match(ptr, "RND")) {

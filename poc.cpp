@@ -17,6 +17,12 @@ namespace ast {
     explicit constexpr expr_node() = default;
     explicit constexpr expr_node(node * e) : m_expr { e } {}
   };
+  class bin_expr_node : public node {
+    node_ptr m_a {};
+    node_ptr m_b {};
+  public:
+    explicit constexpr bin_expr_node(node * a, node * b) : m_a { a }, m_b { b } {}
+  };
   class view_node : public node {
     jute::view m_n {};
   public:
@@ -43,6 +49,9 @@ namespace ast {
   };
   struct print : expr_node {
     using expr_node::expr_node;
+  };
+  struct pset : bin_expr_node {
+    using bin_expr_node::bin_expr_node;
   };
   struct rnd : expr_node {
     using expr_node::expr_node;
@@ -86,6 +95,15 @@ static ast::node * do_print() {
   return new ast::print { do_expr() };
 }
 
+static ast::node * do_pset() {
+  g_ts.match(token::paren::L, "expecting '('");
+  auto a = do_expr();
+  g_ts.match(token::sym::COMMA, "expecting ','");
+  auto b = do_expr();
+  g_ts.match(token::paren::R, "expecting ')'");
+  return new ast::pset { a, b };;
+}
+
 static ast::node * do_screen() {
   auto t = g_ts.take();
   if (t.type != token::number) fail("unsupported screen mode", t);
@@ -127,6 +145,7 @@ static ast::node * do_stmt() {
   auto t = g_ts.take();
   if (t.type == token::identifier) return do_assign(t.content);
   else if (t == token::kw::PRINT)  return do_print();
+  else if (t == token::kw::PSET)   return do_pset();
   else if (t == token::kw::SCREEN) return do_screen();
   else fail("unexpected token type", t);
 }
