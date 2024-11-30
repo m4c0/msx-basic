@@ -5,85 +5,30 @@ import jute;
 import lexer;
 
 namespace ast {
-  class node {
+  enum class type {
+    nil,
+    assign,
+    binop,
+    go_to,
+    int_cast,
+    line,
+    number,
+    print,
+    pset,
+    rnd,
+    screen,
+    string,
+    variable,
   };
-  using node_ptr = hai::uptr<node>;
-
-  class expr_node : public virtual node {
-    node_ptr m_expr {};
-  public:
-    explicit expr_node() = default;
-    explicit expr_node(node * e) : m_expr { e } {}
-  };
-  class bin_expr_node : public node {
-    node_ptr m_a {};
-    node_ptr m_b {};
-  public:
-    explicit constexpr bin_expr_node(node * a, node * b) : m_a { a }, m_b { b } {}
-  };
-  class num_node : public virtual node {
-    int m_n;
-  public:
-    explicit num_node(int n) : m_n { n } {}
-  };
-  class view_node : public node {
-    jute::view m_n {};
-  public:
-    explicit constexpr view_node(jute::view n) : m_n { n } {}
-  };
-
-  class assign : public node {
-    jute::view m_var {};
-    node_ptr m_val {};
-  public:
-    explicit constexpr assign(jute::view v, node * r) : m_var { v }, m_val { r } {}
-  };
-
-  class binop : public node {
-    node_ptr m_lhs {};
-    char m_op {};
-    node_ptr m_rhs {};
-  public:
-    explicit constexpr binop(node * l, char op, node * r) : m_lhs { l }, m_op { op }, m_rhs { r } {}
-  };
-
-  struct int_cast : expr_node {
-    using expr_node::expr_node;
-  };
-  struct print : expr_node {
-    using expr_node::expr_node;
-  };
-  struct pset : bin_expr_node {
-    using bin_expr_node::bin_expr_node;
-  };
-  struct rnd : expr_node {
-    using expr_node::expr_node;
-  };
-
-  struct number : view_node {
-    using view_node::view_node;
-  };
-  struct string : view_node {
-    using view_node::view_node;
-  };
-  struct variable : view_node {
-    using view_node::view_node;
-  };
-
-  struct go_to : num_node {
-    using num_node::num_node;
-  };
-  struct screen : num_node {
-    using num_node::num_node;
-  };
-
-  struct line : virtual num_node, virtual expr_node {
-    line(int num, node * expr) : num_node{num}, expr_node{expr} {}
+  struct node {
+    type type {};
+    int number {};
+    jute::view content {};
+    hai::sptr<hai::array<node>> children {};
   };
 }
 
-static constexpr int atoi(const token::t & t) {
-  auto str = t.content;
+static constexpr int atoi(jute::view str) {
   auto p = str[0] == '-' ? str.subview(1).after : str;;
   int i = 0;
   for (auto i = 0; i < p.size(); i++) {
@@ -92,70 +37,105 @@ static constexpr int atoi(const token::t & t) {
   return str[0] == '-' ? -i : i;
 }
 
-static token::stream g_ts {};
+namespace ast {
+  static constexpr auto c(auto ... n) {
+    using arr_t = hai::array<ast::node>;
+    auto arr = arr_t::make(n...);
+    return hai::sptr { new arr_t{traits::move(arr)} };
+  }
+  static constexpr auto assign(jute::view v, node r) {
+    return node { .type = type::assign, .content = v, .children = c(r) };
+  }
+  static constexpr auto line(jute::view n, node r) {
+    return node { .type = type::line, .number = atoi(n), .children = c(r) };
+  }
 
-static ast::node * do_expr();
+  static constexpr auto binop(node lhs, jute::view op, node rhs) {
+    return node { .type = type::binop, .content = op, .children = c(lhs, rhs) };
+  }
 
-static ast::node * do_print() {
-  auto t = g_ts.peek();
-  if (t.type == token::newline) return new ast::print {};
-  if (t.type == token::string) return new ast::string { g_ts.take().content };
-  return new ast::print { do_expr() };
+  static constexpr auto number(type t, jute::view v) {
+    return node { .type = t, .number = atoi(v), .content = v };
+  }
+  static constexpr auto view(type t, jute::view v) {
+    return node { .type = t, .content = v };
+  }
+
+  static constexpr auto unary(type t, node r) {
+    return node { .type = t, .children = c(r) };
+  }
+  static constexpr auto binary(type t, node a, node b) {
+    return node { .type = t, .children = c(a, b) };
+  }
+
+  static constexpr auto print(node n) { return unary(type::print, n); }
+  static constexpr auto string(jute::view n) { return view(type::string, n); }
 }
 
-static ast::node * do_pset() {
+static token::stream g_ts {};
+
+static ast::node do_expr();
+
+static ast::node do_print() {
+  auto t = g_ts.peek();
+  if (t.type == token::newline) return ast::print(ast::string(""));
+  if (t.type == token::string) return ast::print(ast::string(g_ts.take().content));
+  return ast::print(do_expr());
+}
+
+static ast::node do_pset() {
   g_ts.match(token::paren::L, "expecting '('");
   auto a = do_expr();
   g_ts.match(token::sym::COMMA, "expecting ','");
   auto b = do_expr();
   g_ts.match(token::paren::R, "expecting ')'");
-  return new ast::pset { a, b };;
+  return binary(ast::type::pset, a, b);
 }
 
-static ast::node * do_goto() {
+static ast::node do_goto() {
   auto t = g_ts.take();
   if (t.type != token::number) fail("unsupported token for goto", t);
-  return new ast::go_to { atoi(t) };
+  return number(ast::type::go_to, t.content);
 }
 
-static ast::node * do_screen() {
+static ast::node do_screen() {
   auto t = g_ts.take();
   if (t.type != token::number) fail("unsupported screen mode", t);
-  return new ast::screen { atoi(t) };
+  return number(ast::type::screen, t.content);
 }
 
-static ast::node * do_call() {
+static ast::node do_call() {
   g_ts.match(token::paren::L, "expecting '('");
   auto n = do_expr();
   g_ts.match(token::paren::R, "expecting ')'");
   return n;
 }
 
-static ast::node * do_lhs() {
+static ast::node do_lhs() {
   auto lhs = g_ts.take();
-  if (lhs == token::kw::INT) return new ast::int_cast { do_call() };
-  if (lhs == token::kw::RND) return new ast::rnd { do_call() };
-  if (lhs.type == token::number) return new ast::number { lhs.content };
+  if (lhs == token::kw::INT) return unary(ast::type::int_cast, do_call());
+  if (lhs == token::kw::RND) return unary(ast::type::rnd, do_call());
+  if (lhs.type == token::number) return number(ast::type::number, lhs.content);
   if (lhs.type != token::identifier) fail("invalid token in LHS of expression", lhs);
-  return new ast::variable { lhs.content };
+  return view(ast::type::variable, lhs.content);
 }
 
-static ast::node * do_expr() {
+static ast::node do_expr() {
   auto lhs = do_lhs();
 
   if (g_ts.peek().type != token::oper) return lhs;
   auto op = g_ts.take();
 
   auto rhs = do_expr();
-  return new ast::binop { lhs, op.content[0], rhs };
+  return binop(lhs, op.content, rhs);
 }
 
-static ast::node * do_assign(jute::view var) {
+static ast::node do_assign(jute::view var) {
   g_ts.match(token::sym::EQ, "expecting '=' after identifier");
-  return new ast::assign { var, do_expr() };
+  return assign(var, do_expr());
 }
 
-static ast::node * do_stmt() {
+static ast::node do_stmt() {
   auto t = g_ts.take();
   if (t.type == token::identifier) return do_assign(t.content);
   else if (t == token::kw::GOTO)   return do_goto();
@@ -165,23 +145,27 @@ static ast::node * do_stmt() {
   else fail("unexpected token type", t);
 }
 
-static ast::line * do_line() {
+static ast::node do_line() {
   auto l_num = g_ts.take();
-  if (l_num.type == token::eof) return nullptr;
+  if (l_num.type == token::eof) return {};
   if (l_num.type != token::number) fail("line starting without a number", l_num);
 
   auto expr = do_stmt();
 
   auto eol = g_ts.take();
-  if (eol.type == token::newline) return new ast::line(atoi(l_num), expr);
-  if (eol.type == token::eof) return new ast::line(atoi(l_num), expr);
+  if (eol.type == token::newline) return ast::line(l_num.content, expr);
+  if (eol.type == token::eof)     return ast::line(l_num.content, expr);
   fail("expecting end of line after statement", eol);
 }
 
 export auto parse(jute::view fname, const hai::cstr & src) {
   g_ts = tokenise(fname, src);
 
-  hai::chain<hai::uptr<ast::line>> lines { 1000 };
-  while (auto n = do_line()) lines.push_back(hai::uptr { n });
+  hai::chain<ast::node> lines { 1000 };
+  while (true) {
+    auto n = do_line();
+    if (n.type == ast::type::nil) break;
+    lines.push_back(n);
+  }
   return lines;
 }
