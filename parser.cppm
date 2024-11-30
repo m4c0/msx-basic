@@ -30,12 +30,14 @@ namespace ast {
 
 static constexpr int atoi(jute::view str) {
   auto p = str[0] == '-' ? str.subview(1).after : str;;
-  int i = 0;
+  int res = 0;
   for (auto i = 0; i < p.size(); i++) {
-    i = i * 10 + (p[i] - '0');
+    res = res * 10 + (p[i] - '0');
   }
-  return str[0] == '-' ? -i : i;
+  return str[0] == '-' ? -res : res;
 }
+static_assert(atoi("10") == 10);
+static_assert(atoi("-10") == -10);
 
 namespace ast {
   static constexpr auto c(auto ... n) {
