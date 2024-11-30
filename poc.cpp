@@ -11,11 +11,11 @@ namespace ast {
   };
   using node_ptr = hai::uptr<node>;
 
-  class expr_node : public node {
+  class expr_node : public virtual node {
     node_ptr m_expr {};
   public:
-    explicit constexpr expr_node() = default;
-    explicit constexpr expr_node(node * e) : m_expr { e } {}
+    explicit expr_node() = default;
+    explicit expr_node(node * e) : m_expr { e } {}
   };
   class bin_expr_node : public node {
     node_ptr m_a {};
@@ -23,10 +23,10 @@ namespace ast {
   public:
     explicit constexpr bin_expr_node(node * a, node * b) : m_a { a }, m_b { b } {}
   };
-  class num_node : public node {
+  class num_node : public virtual node {
     int m_n;
   public:
-    explicit constexpr num_node(int n) : m_n { n } {}
+    explicit num_node(int n) : m_n { n } {}
   };
   class view_node : public node {
     jute::view m_n {};
@@ -77,6 +77,10 @@ namespace ast {
   };
   struct screen : num_node {
     using num_node::num_node;
+  };
+
+  struct line : virtual num_node, virtual expr_node {
+    line(int num, node * expr) : num_node{num}, expr_node{expr} {}
   };
 }
 
@@ -163,19 +167,21 @@ static ast::node * do_stmt() {
   else fail("unexpected token type", t);
 }
 
-static bool parse_line() {
+static ast::node * do_line() {
   auto l_num = g_ts.take();
-  if (l_num.type == token::eof) return false;
+  if (l_num.type == token::eof) return nullptr;
   if (l_num.type != token::number) fail("line starting without a number", l_num);
 
-  do_stmt();
-
-  silog::trace(l_num.content);
+  auto expr = do_stmt();
 
   auto eol = g_ts.take();
-  if (eol.type == token::newline) return true;
-  if (eol.type == token::eof) return false;
+  if (eol.type == token::newline) return new ast::line(atoi(l_num), expr);
+  if (eol.type == token::eof) return new ast::line(atoi(l_num), expr);
   fail("expecting end of line after statement", eol);
+}
+
+static ast::node_ptr parse_line() {
+  return ast::node_ptr { do_line() };
 }
 
 static void compile(jute::view fname) {
