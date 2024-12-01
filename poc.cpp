@@ -99,6 +99,15 @@ static void assign(jute::view var, const ast::node & n) {
   g_vars.seek(idx - 1) = eval(n);
 }
 
+static void go_to(int n) {
+  for (auto i = 0; i < g_program.size(); i++) {
+    if (g_program.seek(i).number == n) {
+      g_cur_line = i;
+      return;
+    }
+  }
+}
+
 static void print(const ast::node & n) {
   switch (n.type) {
     case ast::type::string:
@@ -127,6 +136,7 @@ static void run() {
   const auto & line = (*g_program.seek(g_cur_line).children)[0];
   switch (line.type) {
     case ast::type::assign: assign(line.content, (*line.children)[0]); break;
+    case ast::type::go_to:  go_to(line.number); break;
     case ast::type::print:  print((*line.children)[0]); break;
     case ast::type::pset:   pset(line); break;
     case ast::type::screen: screen(line.number); break;
