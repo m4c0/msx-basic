@@ -4,7 +4,7 @@ import hai;
 import jute;
 import lexer;
 
-namespace ast {
+export namespace ast {
   enum class type {
     nil,
     assign,
@@ -26,6 +26,7 @@ namespace ast {
     jute::view content {};
     hai::sptr<hai::array<node>> children {};
   };
+  using nodes = hai::chain<ast::node>;
 }
 
 static constexpr int atoi(jute::view str) {
@@ -163,7 +164,7 @@ static ast::node do_line() {
 export auto parse(jute::view fname, const hai::cstr & src) {
   g_ts = tokenise(fname, src);
 
-  hai::chain<ast::node> lines { 1000 };
+  ast::nodes lines { 1000 };
   while (true) {
     auto n = do_line();
     if (n.type == ast::type::nil) break;

@@ -6,20 +6,34 @@ import hashley;
 import parser;
 import silog;
 
+static ast::nodes g_program {};
+static int g_cur_line {};
+
+static void print(const ast::node & n) {
+  switch (n.type) {
+    case ast::type::string:
+      silog::log(silog::info, "%.*s",
+         static_cast<unsigned>(n.content.size()),
+         n.content.data());
+      break;
+    default: silog::die("cannot print node type: %d", n.type);
+  }
+}
+
+static void run() {
+  const auto & line = (*g_program.seek(g_cur_line).children)[0];
+  switch (line.type) {
+    case ast::type::print: print((*line.children)[0]); break;
+    default: silog::die("invalid node type: %d", line.type);
+  }
+  g_cur_line++;
+}
+
 static void compile(jute::view fname) {
   auto src = jojo::read_cstr(fname);
-  auto lines = parse(fname, src);
+  g_program = parse(fname, src);
 
-  unsigned min = ~0;
-  hashley::siobhan l_idx { 113 };
-  for (auto i = 0; i < lines.size(); i++) {
-    auto l_num = lines.seek(i).number;
-    l_idx[l_num] = i;
-    if (l_num < min) min = l_num;
-  }
-  silog::trace("start at", min);
-  silog::trace("line no", l_idx[min]);
-  silog::trace("parsed lines", lines.size());
+  while (g_cur_line < g_program.size()) run();
 }
 
 int main(int argc, char ** argv) try {
