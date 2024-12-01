@@ -5,15 +5,19 @@ import jute;
 import hai;
 import hashley;
 import parser;
+import rng;
 import silog;
 
 enum class var_type {
+  nil,
   integer,
+  real,
   string,
 };
 struct var {
   var_type type;
   int integer;
+  float real;
   jute::heap str;
 };
 
@@ -22,12 +26,28 @@ static int g_cur_line {};
 static hai::chain<var> g_vars { 128 };
 static hashley::niamh g_var_idx { 113 };
 
+static constexpr void assert_real(const var & v, const char * msg) {
+  if (v.type == var_type::real || v.type == var_type::integer) return;
+  silog::die("'%s' does not support var type %d", msg, v.type);
+}
+
+static var var_int(int n) {
+  return var { .type = var_type::integer, .integer = n, .real = static_cast<float>(n) };
+}
+static var var_real(float n) {
+  return var { .type = var_type::real, .real = n };
+}
+
 static var eval(const ast::node & n);
 
 static var eval_binop(const ast::node & n) {
   auto lhs = eval((*n.children)[0]);
   auto rhs = eval((*n.children)[1]);
-  if (n.content == "*") {}
+  if (n.content == "*") {
+    assert_real(lhs, "*");
+    assert_real(rhs, "*");
+    return var_real(lhs.real * rhs.real);
+  } 
   silog::die("cannot eval binary operation '%.*s'",
       static_cast<unsigned>(n.content.size()),
       n.content.data());
@@ -35,20 +55,25 @@ static var eval_binop(const ast::node & n) {
 static var eval_int_cast(const ast::node & n) {
   auto res = eval((*n.children)[0]);
   switch (res.type) {
-    default: silog::die("cannot cast to int node type: %d", n.type);
+    case var_type::integer: return res;
+    case var_type::real:    return var_int(static_cast<int>(res.real));
+    default: silog::die("cannot cast to int node type: %d", res.type);
   }
 }
+static var eval_integer(const ast::node & n) { return var_int(n.number); }
 static var eval_rnd(const ast::node & n) {
   auto max = eval((*n.children)[0]);
   switch (max.type) {
+    case var_type::integer: return var_real(rng::randf() * max.integer);
     default: silog::die("invalid random max type: %d", max.type);
   }
 }
 static var eval(const ast::node & n) {
+  silog::trace("eval", (int)n.type);
   switch (n.type) {
     case ast::type::binop:    return eval_binop(n);
     case ast::type::int_cast: return eval_int_cast(n);
-    case ast::type::integer:  return { .type = var_type::integer, .integer = n.number };
+    case ast::type::integer:  return eval_integer(n);
     case ast::type::rnd:      return eval_rnd(n);
     default: silog::die("cannot eval node type: %d", n.type);
   }
