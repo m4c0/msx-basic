@@ -26,6 +26,10 @@ static int g_cur_line {};
 static hai::chain<var> g_vars { 128 };
 static hashley::niamh g_var_idx { 113 };
 
+static constexpr void assert_int(const var & v, const char * msg) {
+  if (v.type == var_type::integer) return;
+  silog::die("'%s' does not support var type %d", msg, v.type);
+}
 static constexpr void assert_real(const var & v, const char * msg) {
   if (v.type == var_type::real || v.type == var_type::integer) return;
   silog::die("'%s' does not support var type %d", msg, v.type);
@@ -68,13 +72,20 @@ static var eval_rnd(const ast::node & n) {
     default: silog::die("invalid random max type: %d", max.type);
   }
 }
+static var eval_var(const ast::node & n) {
+  auto idx = g_var_idx[n.content];
+  if (idx == 0) silog::die("undefined variable [%.*s]",
+      static_cast<unsigned>(n.content.size()),
+      n.content.data());
+  return g_vars.seek(idx - 1);
+}
 static var eval(const ast::node & n) {
-  silog::trace("eval", (int)n.type);
   switch (n.type) {
     case ast::type::binop:    return eval_binop(n);
     case ast::type::int_cast: return eval_int_cast(n);
     case ast::type::integer:  return eval_integer(n);
     case ast::type::rnd:      return eval_rnd(n);
+    case ast::type::variable: return eval_var(n);
     default: silog::die("cannot eval node type: %d", n.type);
   }
 }
@@ -99,11 +110,26 @@ static void print(const ast::node & n) {
   }
 }
 
+static void pset(const ast::node & n) {
+  auto x = eval((*n.children)[0]);
+  assert_int(x, "pset");
+  auto y = eval((*n.children)[1]);
+  assert_int(y, "pset");
+
+  silog::log(silog::debug, "TBD: PSET(%d, %d)", x.integer, y.integer);
+}
+
+static void screen(int n) {
+  silog::log(silog::debug, "TBD: SCREEN %d", n);
+}
+
 static void run() {
   const auto & line = (*g_program.seek(g_cur_line).children)[0];
   switch (line.type) {
     case ast::type::assign: assign(line.content, (*line.children)[0]); break;
-    case ast::type::print: print((*line.children)[0]); break;
+    case ast::type::print:  print((*line.children)[0]); break;
+    case ast::type::pset:   pset(line); break;
+    case ast::type::screen: screen(line.number); break;
     default: silog::die("invalid node type: %d", line.type);
   }
   g_cur_line++;
@@ -112,6 +138,7 @@ static void run() {
 static void compile(jute::view fname) {
   auto src = jojo::read_cstr(fname);
   g_program = parse(fname, src);
+  g_cur_line = 0;
 
   while (g_cur_line < g_program.size()) run();
 }
