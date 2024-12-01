@@ -169,5 +169,18 @@ export auto parse(jute::view fname, const hai::cstr & src) {
     if (n.type == ast::type::nil) break;
     lines.push_back(n);
   }
+
+  // Bubble-sort by line number
+  for (auto a = lines.begin(); a != lines.end(); ++a) {
+    auto b = a;
+    for (++b; b != lines.end(); ++b) {
+      if ((*a).number > (*b).number) {
+        auto tmp = *a;
+        *a = *b;
+        *b = tmp;
+      }
+    }
+  }
+
   return lines;
 }
