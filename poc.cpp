@@ -102,7 +102,7 @@ static void assign(jute::view var, const ast::node & n) {
 static void go_to(int n) {
   for (auto i = 0; i < g_program.size(); i++) {
     if (g_program.seek(i).number == n) {
-      g_cur_line = i;
+      g_cur_line = i - 1;
       return;
     }
   }
