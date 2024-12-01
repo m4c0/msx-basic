@@ -40,8 +40,8 @@ static var eval_int_cast(const ast::node & n) {
 }
 static var eval_rnd(const ast::node & n) {
   auto max = eval((*n.children)[0]);
-  switch (n.type) {
-    default: silog::die("invalid random max type: %d", n.type);
+  switch (max.type) {
+    default: silog::die("invalid random max type: %d", max.type);
   }
 }
 static var eval(const ast::node & n) {
