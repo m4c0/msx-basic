@@ -6,7 +6,7 @@ import silog;
 export namespace token {
   enum type {
     nil,
-    number,
+    integer,
     string,
     keyword,
     identifier,
@@ -133,7 +133,7 @@ export auto tokenise(jute::view fname, const hai::cstr & src) {
       case '0': case '1': case '2': case '3': case '4':
       case '5': case '6': case '7': case '8': case '9':
         while (is_digit(*ptr)) ptr++;
-        push(make(token::number, cs, ptr));
+        push(make(token::integer, cs, ptr));
         continue;
       default:
         if (match(ptr, "GOTO"))   { push(token::kw::GOTO);   continue; }

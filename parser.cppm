@@ -11,8 +11,8 @@ export namespace ast {
     binop,
     go_to,
     int_cast,
+    integer,
     line,
-    number,
     print,
     pset,
     rnd,
@@ -97,13 +97,13 @@ static ast::node do_pset() {
 
 static ast::node do_goto() {
   auto t = g_ts.take();
-  if (t.type != token::number) fail("unsupported token for goto", t);
+  if (t.type != token::integer) fail("unsupported token for goto", t);
   return number(ast::type::go_to, t.content);
 }
 
 static ast::node do_screen() {
   auto t = g_ts.take();
-  if (t.type != token::number) fail("unsupported screen mode", t);
+  if (t.type != token::integer) fail("unsupported screen mode", t);
   return number(ast::type::screen, t.content);
 }
 
@@ -118,7 +118,7 @@ static ast::node do_lhs() {
   auto lhs = g_ts.take();
   if (lhs == token::kw::INT) return unary(ast::type::int_cast, do_call());
   if (lhs == token::kw::RND) return unary(ast::type::rnd, do_call());
-  if (lhs.type == token::number) return number(ast::type::number, lhs.content);
+  if (lhs.type == token::integer) return number(ast::type::integer, lhs.content);
   if (lhs.type != token::identifier) fail("invalid token in LHS of expression", lhs);
   return view(ast::type::variable, lhs.content);
 }
@@ -151,7 +151,7 @@ static ast::node do_stmt() {
 static ast::node do_line() {
   auto l_num = g_ts.take();
   if (l_num.type == token::eof) return {};
-  if (l_num.type != token::number) fail("line starting without a number", l_num);
+  if (l_num.type != token::integer) fail("line starting without a number", l_num);
 
   auto expr = do_stmt();
 

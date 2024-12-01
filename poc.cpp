@@ -8,7 +8,7 @@ import parser;
 import silog;
 
 enum class var_type {
-  number,
+  integer,
   string,
 };
 struct var {
@@ -48,7 +48,7 @@ static var eval(const ast::node & n) {
   switch (n.type) {
     case ast::type::binop:    return eval_binop(n);
     case ast::type::int_cast: return eval_int_cast(n);
-    case ast::type::number:   return { .type = var_type::number, .integer = n.number };
+    case ast::type::integer:  return { .type = var_type::integer, .integer = n.number };
     case ast::type::rnd:      return eval_rnd(n);
     default: silog::die("cannot eval node type: %d", n.type);
   }
