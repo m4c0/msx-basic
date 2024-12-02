@@ -67,8 +67,11 @@ namespace ast {
   static constexpr auto unary(type t, node r) {
     return node { .type = t, .children = c(r) };
   }
-  static constexpr auto binary(type t, node a, node b) {
-    return node { .type = t, .children = c(a, b) };
+  // static constexpr auto binary(type t, node a, node b) {
+  //   return node { .type = t, .children = c(a, b) };
+  // }
+  static constexpr auto ternary(type t, node a, node b, node c) {
+    return node { .type = t, .children = ast::c(a, b, c) };
   }
 
   static constexpr auto print(node n) { return unary(type::print, n); }
@@ -92,7 +95,13 @@ static ast::node do_pset() {
   g_ts.match(token::sym::COMMA, "expecting ','");
   auto b = do_expr();
   g_ts.match(token::paren::R, "expecting ')'");
-  return binary(ast::type::pset, a, b);
+
+  ast::node c = number(ast::type::integer, "15");
+  if (g_ts.peek() == token::sym::COMMA) {
+    g_ts.take();
+    c = do_expr();
+  }
+  return ternary(ast::type::pset, a, b, c);
 }
 
 static ast::node do_goto() {

@@ -47,9 +47,20 @@ static var eval(const ast::node & n);
 static var eval_binop(const ast::node & n) {
   auto lhs = eval((*n.children)[0]);
   auto rhs = eval((*n.children)[1]);
+  if (n.content == "+") {
+    assert_real(lhs, "+");
+    assert_real(rhs, "+");
+    if (lhs.type == var_type::integer && lhs.type == rhs.type) {
+      return var_int(lhs.real + rhs.real);
+    }
+    return var_real(lhs.real + rhs.real);
+  } 
   if (n.content == "*") {
     assert_real(lhs, "*");
     assert_real(rhs, "*");
+    if (lhs.type == var_type::integer && lhs.type == rhs.type) {
+      return var_int(lhs.real * rhs.real);
+    }
     return var_real(lhs.real * rhs.real);
   } 
   silog::die("cannot eval binary operation '%.*s'",
@@ -124,8 +135,10 @@ static void pset(const ast::node & n) {
   assert_int(x, "pset");
   auto y = eval((*n.children)[1]);
   assert_int(y, "pset");
+  auto c = eval((*n.children)[2]);
+  assert_int(c, "pset");
 
-  silog::log(silog::debug, "TBD: PSET(%d, %d)", x.integer, y.integer);
+  silog::log(silog::debug, "TBD: PSET(%d, %d),%d", x.integer, y.integer, c.integer);
 }
 
 static void screen(int n) {
