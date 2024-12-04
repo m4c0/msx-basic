@@ -118,7 +118,7 @@ static void color(const ast::node & n) {
   auto brd = eval((*n.children)[2]);
   assert_int(brd, "color");
 
-  silog::log(silog::debug, "TBD: COLOR %d, %d, %d", fg.integer, bg.integer, brd.integer);
+  silog::log(silog::debug, "TODO: COLOR %d, %d, %d", fg.integer, bg.integer, brd.integer);
 }
 
 static void go_to(int n) {
@@ -149,11 +149,11 @@ static void pset(const ast::node & n) {
   auto c = eval((*n.children)[2]);
   assert_int(c, "pset");
 
-  silog::log(silog::debug, "TBD: PSET(%d, %d),%d", x.integer, y.integer, c.integer);
+  silog::log(silog::debug, "TODO: PSET(%d, %d),%d", x.integer, y.integer, c.integer);
 }
 
 static void screen(int n) {
-  silog::log(silog::debug, "TBD: SCREEN %d", n);
+  silog::log(silog::debug, "TODO: SCREEN %d", n);
 }
 
 static void run() {
