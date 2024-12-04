@@ -55,6 +55,7 @@ export namespace token {
   };
 }
 export namespace token::kw {
+  constexpr t COLOR  { .type = keyword, .content = "COLOR" };
   constexpr t GOTO   { .type = keyword, .content = "GOTO" };
   constexpr t INT    { .type = keyword, .content = "INT" };
   constexpr t PRINT  { .type = keyword, .content = "PRINT" };
@@ -136,6 +137,7 @@ export auto tokenise(jute::view fname, const hai::cstr & src) {
         push(make(token::integer, cs, ptr));
         continue;
       default:
+        if (match(ptr, "COLOR"))  { push(token::kw::COLOR);  continue; }
         if (match(ptr, "GOTO"))   { push(token::kw::GOTO);   continue; }
         if (match(ptr, "INT"))    { push(token::kw::INT);    continue; }
         if (match(ptr, "PRINT"))  { push(token::kw::PRINT);  continue; }

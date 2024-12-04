@@ -9,6 +9,7 @@ export namespace ast {
     nil,
     assign,
     binop,
+    color,
     go_to,
     int_cast,
     integer,
@@ -82,6 +83,16 @@ static token::stream g_ts {};
 
 static ast::node do_expr();
 
+static ast::node do_color() {
+  auto fg = do_expr();
+  g_ts.match(token::sym::COMMA, "expecting ','");
+  auto bg = do_expr();
+  g_ts.match(token::sym::COMMA, "expecting ','");
+  auto border = do_expr();
+
+  return ast::ternary(ast::type::color, fg, bg, border);
+}
+
 static ast::node do_print() {
   auto t = g_ts.peek();
   if (t.type == token::newline) return ast::print(ast::string(""));
@@ -150,6 +161,7 @@ static ast::node do_assign(jute::view var) {
 static ast::node do_stmt() {
   auto t = g_ts.take();
   if (t.type == token::identifier) return do_assign(t.content);
+  else if (t == token::kw::COLOR)  return do_color();
   else if (t == token::kw::GOTO)   return do_goto();
   else if (t == token::kw::PRINT)  return do_print();
   else if (t == token::kw::PSET)   return do_pset();

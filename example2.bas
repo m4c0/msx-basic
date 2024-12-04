@@ -4,3 +4,4 @@
 40 PSET(X, Y),C
 50 GOTO 20
 35 C = INT(RND(1) * 14) + 2
+5 COLOR 15, 1, 1
